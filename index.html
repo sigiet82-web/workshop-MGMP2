@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LKPD Interaktif — Viskositas Zat Cair</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1620; --surface:#16212C; --surface-alt:#1E2C39; --border:#2A3946;
+    --text:#ECEFF1; --muted:#93A1AB; --amber:#E8A33D; --teal:#57C7BE;
+    --danger:#E2726F; --success:#6FBF8B;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.65; }
+  h1,h2,h3,h4{ font-family:'Fraunces',serif; font-weight:500; margin:0 0 0.4em; line-height:1.2; }
+  h1{ font-size:clamp(2rem,4.4vw,2.8rem); font-weight:600; }
+  h2{ font-size:clamp(1.35rem,2.6vw,1.65rem); }
+  h3{ font-size:1.12rem; }
+  h4{ font-size:0.98rem; color:var(--text); }
+  p{ color:var(--muted); margin:0 0 1em; max-width:70ch; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 24px; }
+  section{ padding:52px 0; border-bottom:1px solid var(--border); }
+  section:last-of-type{ border-bottom:none; }
+  header.hero{ padding:64px 0 40px; border-bottom:1px solid var(--border); }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px 24px; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media (max-width:760px){ .grid2,.grid3{ grid-template-columns:1fr; } }
+
+  label{ display:block; font-size:0.82rem; color:var(--muted); margin-bottom:6px; }
+  input[type="text"], textarea, select{
+    width:100%; background:var(--surface-alt); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); font-family:'Inter',sans-serif; font-size:0.92rem; padding:10px 12px;
+  }
+  input[type="text"]:focus, textarea:focus{ outline:2px solid var(--teal); outline-offset:1px; }
+  textarea{ resize:vertical; min-height:80px; line-height:1.5; }
+
+  button{
+    font-family:'Inter',sans-serif; font-size:0.86rem; font-weight:600; border:none; border-radius:10px;
+    padding:11px 18px; cursor:pointer; background:var(--amber); color:#17110A; transition:transform .1s ease;
+  }
+  button:hover{ transform:translateY(-1px); }
+  button.ghost{ background:transparent; color:var(--muted); border:1px solid var(--border); }
+  button.ghost:hover{ border-color:var(--teal); color:var(--teal); }
+  button.teal{ background:var(--teal); color:#06211E; }
+  button:disabled{ opacity:0.4; cursor:not-allowed; transform:none; }
+
+  .formula-box{ background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--teal); border-radius:4px; padding:16px 20px; margin:14px 0; font-family:'Fraunces',serif; font-size:1.05rem; }
+  .formula-box small{ display:block; margin-top:6px; font-family:'Inter',sans-serif; font-size:0.8rem; color:var(--muted); }
+
+  table{ width:100%; border-collapse:collapse; font-size:0.85rem; }
+  th,td{ padding:9px 10px; border-bottom:1px solid var(--border); text-align:left; vertical-align:middle; }
+  th{ color:var(--muted); font-weight:600; font-size:0.76rem; text-transform:none; }
+  td input{ width:100%; background:var(--surface-alt); border:1px solid var(--border); border-radius:6px; color:var(--text); padding:6px 8px; font-family:'JetBrains Mono',monospace; font-size:0.85rem; }
+  .fluid-chip{ display:inline-flex; align-items:center; gap:6px; font-weight:600; }
+  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .status-ok{ color:var(--success); font-weight:600; }
+  .status-bad{ color:var(--danger); font-weight:600; }
+  .status-none{ color:var(--muted); }
+  .rowdel{ background:transparent; color:var(--muted); border:none; padding:4px 8px; font-size:1rem; }
+  .rowdel:hover{ color:var(--danger); }
+
+  /* simulation stage */
+  .sim-layout{ display:grid; grid-template-columns:220px 1fr; gap:26px; align-items:start; margin-top:20px; }
+  @media (max-width:820px){ .sim-layout{ grid-template-columns:1fr; } }
+  .tube-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px; text-align:center; }
+  .tube{ position:relative; width:90px; height:300px; margin:0 auto; border:2px solid var(--border); border-radius:0 0 18px 18px; overflow:hidden; background:var(--surface-alt); }
+  .fluid-fill{ position:absolute; inset:0; }
+  .calib-line{ position:absolute; left:0; right:0; border-top:2px dashed rgba(255,255,255,0.4); }
+  .calib-label{ position:absolute; left:-22px; font-size:0.7rem; color:var(--muted); }
+  .ball{ position:absolute; left:50%; top:6px; width:20px; height:20px; margin-left:-10px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #E7EBEE, #8B98A1 70%); box-shadow:0 2px 6px rgba(0,0,0,.35); }
+  .stopwatch{ margin-top:14px; font-family:'JetBrains Mono',monospace; font-size:1.3rem; color:var(--amber); }
+  .stopwatch-label{ font-size:0.74rem; color:var(--muted); }
+  .fluid-btns{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .fluid-btns button{ background:var(--surface-alt); color:var(--text); border:1px solid var(--border); text-align:left; }
+  .fluid-btns button:hover{ border-color:var(--teal); }
+
+  .known-table td:first-child, .known-table th:first-child{ color:var(--muted); }
+
+  details.setup{ margin-top:10px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 18px; }
+  details.setup summary{ cursor:pointer; color:var(--teal); font-weight:600; font-size:0.9rem; }
+  details.setup ol{ color:var(--muted); font-size:0.85rem; line-height:1.7; }
+  details.setup code{ background:var(--surface-alt); padding:1px 6px; border-radius:4px; color:var(--amber); font-family:'JetBrains Mono',monospace; font-size:0.82rem; }
+
+  .avg-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }
+  @media (max-width:700px){ .avg-grid{ grid-template-columns:repeat(2,1fr); } }
+  .avg-box{ background:var(--surface-alt); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center; }
+  .avg-box .v{ font-family:'Fraunces',serif; color:var(--amber); font-size:1.15rem; }
+  .avg-box .l{ font-size:0.72rem; color:var(--muted); }
+
+  .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--surface-alt); border:1px solid var(--teal); color:var(--text); padding:12px 20px; border-radius:10px; font-size:0.88rem; opacity:0; pointer-events:none; transition:all .25s ease; z-index:50; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  footer{ padding:40px 0 60px; }
+  footer p{ font-size:0.8rem; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>LKPD Interaktif: Viskositas Zat Cair</h1>
+    <p>Simulasi virtual metode bola jatuh untuk menentukan koefisien viskositas fluida — lengkap dengan data pengamatan, analisis, dan pengiriman jawaban langsung dari halaman ini.</p>
+    <div class="card grid3" style="margin-top:20px;">
+      <div><label for="fNama">Nama Siswa</label><input type="text" id="fNama" placeholder="Nama lengkap"></div>
+      <div><label for="fKelas">Kelas</label><input type="text" id="fKelas" placeholder="Contoh: XII IPA 1"></div>
+      <div><label for="fKelompok">Kelompok</label><input type="text" id="fKelompok" placeholder="Contoh: Kelompok 3"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section id="tujuan">
+    <div class="wrap">
+      <h2>A. Tujuan Pembelajaran</h2>
+      <ul>
+        <li>Menjelaskan konsep viskositas dan kecepatan terminal pada benda yang bergerak dalam fluida kental.</li>
+        <li>Melaksanakan percobaan virtual bola jatuh untuk menentukan koefisien viskositas suatu zat cair.</li>
+        <li>Menghitung koefisien viskositas menggunakan Hukum Stokes berdasarkan data hasil simulasi.</li>
+        <li>Menganalisis pengaruh jenis fluida terhadap kecepatan terminal dan gaya hambatnya.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="teori">
+    <div class="wrap">
+      <h2>B. Dasar Teori</h2>
+      <p>Viskositas adalah ukuran kekentalan fluida yang menyatakan besarnya gesekan internal saat fluida mengalir atau saat benda bergerak di dalamnya. Ketika sebuah bola dijatuhkan ke dalam fluida kental, bola mula-mula dipercepat oleh gaya berat, lalu gaya gesek Stokes yang melawan gerak membesar seiring bertambahnya kecepatan, hingga akhirnya bola bergerak dengan kecepatan tetap yang disebut kecepatan terminal (v<sub>t</sub>).</p>
+      <div class="formula-box">Fs = 6&pi;&eta;rv<small>Gaya gesek Stokes, dengan &eta; = koefisien viskositas (Pa&middot;s), r = jari-jari bola (m), v = kecepatan bola (m/s).</small></div>
+      <div class="formula-box">&eta; = [2r&sup2;g(&rho;<sub>b</sub> &minus; &rho;<sub>f</sub>)] / (9v<sub>t</sub>)<small>Koefisien viskositas fluida dari kesetimbangan gaya pada kecepatan terminal. g = 9,8 m/s&sup2;.</small></div>
+    </div>
+  </section>
+
+  <section id="data-diketahui">
+    <div class="wrap">
+      <h2>C. Data yang Diketahui</h2>
+      <p>Bola dan jarak kalibrasi berikut sudah ditentukan untuk semua percobaan. Massa jenis setiap fluida sudah diukur sebelumnya. Koefisien viskositas (&eta;) setiap fluida <strong>belum diketahui</strong> — itulah yang akan kamu tentukan lewat simulasi.</p>
+      <div class="grid2">
+        <div class="card">
+          <h4>Bola Uji</h4>
+          <table class="known-table">
+            <tr><td>Jari-jari bola (r)</td><td>6 mm = 0,006 m</td></tr>
+            <tr><td>Massa bola (m)</td><td>7,85 gram = 0,00785 kg</td></tr>
+            <tr><td>Massa jenis bola (&rho;<sub>b</sub>)</td><td>8730 kg/m&sup3;</td></tr>
+            <tr><td>Jarak kalibrasi A&ndash;B (s)</td><td>0,25 m</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <h4>Massa Jenis Fluida</h4>
+          <table class="known-table">
+            <tr><td><span class="fluid-chip"><i class="dot" style="background:#4FA6E8"></i>Fluida A</span></td><td>&rho;<sub>f</sub> = 880 kg/m&sup3;</td></tr>
+            <tr><td><span class="fluid-chip"><i class="dot" style="background:#E8A33D"></i>Fluida B</span></td><td>&rho;<sub>f</sub> = 900 kg/m&sup3;</td></tr>
+            <tr><td><span class="fluid-chip"><i class="dot" style="background:#B5551E"></i>Fluida C</span></td><td>&rho;<sub>f</sub> = 960 kg/m&sup3;</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="simulasi">
+    <div class="wrap">
+      <h2>D. Simulasi Percobaan</h2>
+      <p>Pilih salah satu fluida, lalu klik untuk menjatuhkan bola. Stopwatch mencatat waktu tempuh bola dari garis A ke garis B secara otomatis. Lakukan minimal 2 kali percobaan untuk tiap fluida, lalu hitung kecepatan terminal dan koefisien viskositasnya pada tabel di bawah.</p>
+
+      <div class="sim-layout">
+        <div class="tube-wrap">
+          <div class="tube" id="tube">
+            <div class="fluid-fill" id="fluidFill"></div>
+            <div class="calib-line" id="lineA" style="top:28%;"><span class="calib-label">A</span></div>
+            <div class="calib-line" id="lineB" style="top:78%;"><span class="calib-label">B</span></div>
+            <div class="ball" id="ball"></div>
+          </div>
+          <div class="stopwatch" id="stopwatch">0.00 s</div>
+          <div class="stopwatch-label">waktu A &rarr; B</div>
+          <div class="fluid-btns" id="fluidBtns"></div>
+        </div>
+
+        <div>
+          <div class="card" style="overflow-x:auto;">
+            <table id="dataTable">
+              <thead>
+                <tr>
+                  <th>#</th><th>Fluida</th><th>s (m)</th><th>t (s)</th>
+                  <th>v<sub>t</sub> (m/s)</th><th>&eta; (Pa&middot;s)</th><th>Status</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="dataBody"></tbody>
+            </table>
+            <p id="emptyMsg" style="margin-top:12px; font-size:0.85rem;">Belum ada data. Jatuhkan bola pada salah satu fluida untuk mulai mencatat.</p>
+          </div>
+          <div class="btn-row" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="btnCheck" class="teal">Cek Semua Jawaban</button>
+            <button id="btnReveal" class="ghost">Tampilkan Nilai Referensi</button>
+          </div>
+          <div class="avg-grid" id="avgGrid"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="analisis">
+    <div class="wrap">
+      <h2>E. Analisis dan Perhitungan</h2>
+      <label for="contohHitung">Tuliskan contoh perhitungan lengkap koefisien viskositas untuk salah satu percobaan di atas (sertakan nomor percobaannya):</label>
+      <textarea id="contohHitung" rows="5" placeholder="Contoh: Pada percobaan ke-1 (Fluida A), s = 0,25 m, t = ... s, sehingga vt = ... Kemudian η = ..."></textarea>
+    </div>
+  </section>
+
+  <section id="diskusi">
+    <div class="wrap">
+      <h2>F. Pertanyaan Diskusi</h2>
+
+      <label for="d1">1. Apa yang dimaksud dengan kecepatan terminal? Mengapa bola yang jatuh dalam fluida kental akhirnya bergerak dengan kecepatan tetap?</label>
+      <textarea id="d1" rows="3"></textarea><br><br>
+
+      <label for="d2">2. Berdasarkan data percobaanmu, fluida manakah yang memiliki koefisien viskositas paling besar? Bagaimana pengaruhnya terhadap waktu tempuh bola?</label>
+      <textarea id="d2" rows="3"></textarea><br><br>
+
+      <label for="d3">3. Jika jari-jari bola diperbesar dua kali lipat sementara fluida tetap sama, apa yang akan terjadi pada kecepatan terminalnya? Jelaskan berdasarkan persamaan Hukum Stokes.</label>
+      <textarea id="d3" rows="3"></textarea><br><br>
+
+      <label for="d4">4. Sebutkan minimal tiga faktor yang memengaruhi besarnya viskositas suatu zat cair.</label>
+      <textarea id="d4" rows="3"></textarea><br><br>
+
+      <label for="d5">5. Bandingkan nilai koefisien viskositas hasil perhitunganmu dengan nilai referensi (setelah ditampilkan). Diskusikan kemungkinan sumber perbedaannya.</label>
+      <textarea id="d5" rows="3"></textarea>
+    </div>
+  </section>
+
+  <section id="kesimpulan">
+    <div class="wrap">
+      <h2>G. Kesimpulan</h2>
+      <label for="kesim">Tuliskan kesimpulan yang kamu peroleh dari kegiatan simulasi ini:</label>
+      <textarea id="kesim" rows="4"></textarea>
+    </div>
+  </section>
+
+  <section id="kirim">
+    <div class="wrap">
+      <h2>Kirim Jawaban</h2>
+      <p>Pastikan identitas di bagian atas halaman sudah diisi sebelum mengirim.</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="btnGoogleForm">Kirim Jawaban ke Google Sheets</button>
+        <button id="btnDownload" class="ghost">Unduh Jawaban (.txt)</button>
+        <button id="btnCopy" class="ghost">Salin Semua Jawaban</button>
+      </div>
+
+      <details class="setup">
+        <summary>Panduan setup untuk guru (Google Sheets)</summary>
+        <ol>
+          <li>Buat satu Google Spreadsheet untuk menampung jawaban siswa.</li>
+          <li>Buka <strong>Ekstensi &rarr; Apps Script</strong> pada Spreadsheet tersebut.</li>
+          <li>Salin kode Apps Script yang disediakan bersama file LKPD ini, lalu simpan.</li>
+          <li>Pilih <strong>Deploy &rarr; New deployment &rarr; Web app</strong>.</li>
+          <li>Atur <strong>Execute as: Me</strong> dan akses <strong>Anyone</strong>, lalu lakukan Deploy.</li>
+          <li>Salin URL Web App yang berakhiran <code>/exec</code>.</li>
+          <li>Tempel URL tersebut pada <code>GOOGLE_APPS_SCRIPT_URL</code> di file HTML ini.</li>
+          <li>Unggah ulang file HTML ke GitHub Pages. Setelah itu tombol <strong>Kirim Jawaban ke Google Sheets</strong> akan mengirim seluruh jawaban ke Spreadsheet.</li>
+        </ol>
+        <p style="margin-bottom:0;">Jika URL Apps Script belum diisi, tombol kirim akan memberi peringatan. Tombol Unduh dan Salin tetap dapat digunakan.</p>
+      </details>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap"><p>Halaman ini dapat dipublikasikan lewat GitHub Pages atau ditempelkan sebagai embed di Google Sites.</p></div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   KONFIGURASI GOOGLE FORM — diisi oleh guru
+   ============================================================
+   1. formActionUrl: URL dasar Google Form kamu (yang diakhiri /viewform).
+   2. entries: kode entry.xxxxxxxxx untuk tiap pertanyaan, dari langkah
+      "Dapatkan link preisi" di Google Form. Lihat panduan di halaman.
+*/
+const GOOGLE_APPS_SCRIPT_URL = ""; 
+// Isi dengan URL Web App Google Apps Script, contoh:
+// https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxx/exec
+
+
+/* ============================================================ Fisika & data */
+const G = 9.8;
+const BALL = { r: 0.006, m: 0.00785, rhoB: 8730 };
+const S_CAL = 0.25;
+const FLUIDS = {
+  A: { name: "Fluida A", rhoF: 880, etaTrue: 0.45, color: "#4FA6E8" },
+  B: { name: "Fluida B", rhoF: 900, etaTrue: 1.2, color: "#E8A33D" },
+  C: { name: "Fluida C", rhoF: 960, etaTrue: 3.0, color: "#B5551E" }
+};
+
+function trueVt(fluidKey) {
+  const f = FLUIDS[fluidKey];
+  return (2 * BALL.r * BALL.r * G * (BALL.rhoB - f.rhoF)) / (9 * f.etaTrue);
+}
+
+let rows = [];
+let rowSeq = 0;
+let revealed = false;
+
+/* ============================================================ UI: fluid buttons */
+const fluidBtns = document.getElementById('fluidBtns');
+Object.keys(FLUIDS).forEach(key => {
+  const f = FLUIDS[key];
+  const btn = document.createElement('button');
+  btn.innerHTML = '<i class="dot" style="background:' + f.color + '"></i> Jatuhkan &mdash; ' + f.name;
+  btn.style.display = 'flex'; btn.style.alignItems = 'center'; btn.style.gap = '8px';
+  btn.addEventListener('click', () => dropBall(key, btn));
+  fluidBtns.appendChild(btn);
+});
+
+/* ============================================================ Animation */
+const tube = document.getElementById('tube');
+const ball = document.getElementById('ball');
+const fluidFill = document.getElementById('fluidFill');
+const stopwatch = document.getElementById('stopwatch');
+
+function dropBall(fluidKey, sourceBtn) {
+  const allBtns = fluidBtns.querySelectorAll('button');
+  allBtns.forEach(b => b.disabled = true);
+
+  const f = FLUIDS[fluidKey];
+  fluidFill.style.background = f.color + '33';
+
+  const vt = trueVt(fluidKey);
+  const tTrue = S_CAL / vt;
+  const noise = (Math.random() * 0.06) - 0.03;
+  const tObs = Math.max(0.05, tTrue * (1 + noise));
+
+  const tubeH = tube.clientHeight;
+  const ballH = ball.clientHeight;
+  const lineAY = tubeH * 0.28;
+  const lineBY = tubeH * 0.78;
+
+  ball.style.transition = 'none';
+  ball.style.top = '4px';
+  void ball.offsetHeight;
+
+  // phase 1: percepatan menuju garis A (durasi tetap, tidak diukur stopwatch)
+  const dur1 = 500;
+  ball.style.transition = 'top ' + dur1 + 'ms ease-in';
+  ball.style.top = (lineAY - ballH / 2) + 'px';
+
+  setTimeout(() => {
+    // phase 2: kecepatan tetap dari A ke B — stopwatch berjalan
+    const dur2 = 1800; // durasi animasi nyata (detik layar), dipisah dari tObs (waktu simulasi)
+    ball.style.transition = 'top ' + dur2 + 'ms linear';
+    ball.style.top = (lineBY - ballH / 2) + 'px';
+
+    const start = performance.now();
+    function tick(now) {
+      const p = Math.min(1, (now - start) / dur2);
+      stopwatch.textContent = (p * tObs).toFixed(2) + ' s';
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    setTimeout(() => {
+      // phase 3: lanjut sedikit ke dasar tabung lalu reset
+      const dur3 = 400;
+      ball.style.transition = 'top ' + dur3 + 'ms ease-in';
+      ball.style.top = (tubeH - ballH - 6) + 'px';
+
+      addRow(fluidKey, S_CAL, tObs);
+
+      setTimeout(() => {
+        allBtns.forEach(b => b.disabled = false);
+      }, dur3);
+    }, dur2);
+  }, dur1);
+}
+
+/* ============================================================ Table */
+const dataBody = document.getElementById('dataBody');
+const emptyMsg = document.getElementById('emptyMsg');
+
+function addRow(fluidKey, s, t) {
+  rowSeq++;
+  rows.push({ id: rowSeq, fluidKey, s, t, vt: '', eta: '', status: null });
+  renderTable();
+}
+
+function removeRow(id) {
+  rows = rows.filter(r => r.id !== id);
+  renderTable();
+}
+
+function renderTable() {
+  dataBody.innerHTML = '';
+  emptyMsg.style.display = rows.length ? 'none' : 'block';
+  rows.forEach((r, i) => {
+    const f = FLUIDS[r.fluidKey];
+    const tr = document.createElement('tr');
+
+    const statusHtml = r.status === 'ok'
+      ? '<span class="status-ok">Sesuai</span>'
+      : r.status === 'bad'
+        ? '<span class="status-bad">Cek lagi</span>'
+        : '<span class="status-none">&ndash;</span>';
+
+    tr.innerHTML =
+      '<td>' + (i + 1) + '</td>' +
+      '<td><span class="fluid-chip"><i class="dot" style="background:' + f.color + '"></i>' + f.name + '</span></td>' +
+      '<td>' + r.s.toFixed(2) + '</td>' +
+      '<td>' + r.t.toFixed(2) + '</td>' +
+      '<td><input type="text" data-id="' + r.id + '" data-field="vt" value="' + r.vt + '" placeholder="..."></td>' +
+      '<td><input type="text" data-id="' + r.id + '" data-field="eta" value="' + r.eta + '" placeholder="..."></td>' +
+      '<td>' + statusHtml + '</td>' +
+      '<td><button class="rowdel" data-del="' + r.id + '" title="Hapus baris">&times;</button></td>';
+    dataBody.appendChild(tr);
+  });
+
+  dataBody.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const id = parseInt(e.target.dataset.id);
+      const field = e.target.dataset.field;
+      const row = rows.find(r => r.id === id);
+      if (row) { row[field] = e.target.value; row.status = null; renderAverages(); }
+    });
+  });
+  dataBody.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', e => removeRow(parseInt(e.target.dataset.del)));
+  });
+
+  renderAverages();
+}
+
+function renderAverages() {
+  const grid = document.getElementById('avgGrid');
+  grid.innerHTML = '';
+  Object.keys(FLUIDS).forEach(key => {
+    const f = FLUIDS[key];
+    const vals = rows.filter(r => r.fluidKey === key && parseFloat(r.eta)).map(r => parseFloat(r.eta));
+    const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+    const box = document.createElement('div');
+    box.className = 'avg-box';
+    box.innerHTML = '<div class="v">' + (avg !== null ? avg.toFixed(3) : '&ndash;') + '</div><div class="l">Rata-rata &eta; ' + f.name + (revealed ? ' (ref: ' + f.etaTrue.toFixed(2) + ')' : '') + '</div>';
+    grid.appendChild(box);
+  });
+}
+
+/* ============================================================ Cek jawaban */
+document.getElementById('btnCheck').addEventListener('click', () => {
+  rows.forEach(r => {
+    const vtVal = parseFloat(r.vt);
+    const etaVal = parseFloat(r.eta);
+    if (!vtVal || !etaVal) { r.status = null; return; }
+    const vtExpected = r.s / r.t;
+    const etaTrue = FLUIDS[r.fluidKey].etaTrue;
+    const vtOk = Math.abs(vtVal - vtExpected) / vtExpected < 0.08;
+    const etaOk = Math.abs(etaVal - etaTrue) / etaTrue < 0.25;
+    r.status = (vtOk && etaOk) ? 'ok' : 'bad';
+  });
+  renderTable();
+  showToast('Jawaban diperiksa. Lihat kolom Status pada tabel.');
+});
+
+document.getElementById('btnReveal').addEventListener('click', () => {
+  revealed = true;
+  renderAverages();
+  showToast('Nilai referensi viskositas ditampilkan di bawah tabel.');
+});
+
+/* ============================================================ Kirim jawaban */
+function buildSummaryText() {
+  const nama = document.getElementById('fNama').value || '(belum diisi)';
+  const kelas = document.getElementById('fKelas').value || '(belum diisi)';
+  const kelompok = document.getElementById('fKelompok').value || '(belum diisi)';
+
+  let dataTabel = rows.map((r, i) => {
+    const f = FLUIDS[r.fluidKey];
+    return (i + 1) + '. ' + f.name + ' | s=' + r.s.toFixed(2) + ' m | t=' + r.t.toFixed(2) + ' s | vt=' + (r.vt || '-') + ' m/s | eta=' + (r.eta || '-') + ' Pa.s';
+  }).join('\n') || '(belum ada data percobaan)';
+
+  const overallVals = rows.filter(r => parseFloat(r.eta)).map(r => parseFloat(r.eta));
+  const rataRata = overallVals.length ? (overallVals.reduce((a, b) => a + b, 0) / overallVals.length).toFixed(3) + ' Pa.s' : '(belum dihitung)';
+
+  const contoh = document.getElementById('contohHitung').value || '(belum diisi)';
+  const d = [1, 2, 3, 4, 5].map(n => document.getElementById('d' + n).value || '(belum diisi)');
+  const kesim = document.getElementById('kesim').value || '(belum diisi)';
+
+  return {
+    nama, kelas, kelompok, dataTabel, rataRata, contoh, d, kesim,
+    text:
+      'LKPD INTERAKTIF — VISKOSITAS ZAT CAIR\n' +
+      '======================================\n' +
+      'Nama    : ' + nama + '\n' +
+      'Kelas   : ' + kelas + '\n' +
+      'Kelompok: ' + kelompok + '\n\n' +
+      'DATA PERCOBAAN\n' + dataTabel + '\n\n' +
+      'RATA-RATA KOEFISIEN VISKOSITAS: ' + rataRata + '\n\n' +
+      'CONTOH PERHITUNGAN\n' + contoh + '\n\n' +
+      'PERTANYAAN DISKUSI\n' +
+      '1. ' + d[0] + '\n2. ' + d[1] + '\n3. ' + d[2] + '\n4. ' + d[3] + '\n5. ' + d[4] + '\n\n' +
+      'KESIMPULAN\n' + kesim + '\n'
+  };
+}
+
+document.getElementById('btnDownload').addEventListener('click', () => {
+  const s = buildSummaryText();
+  const blob = new Blob([s.text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'LKPD_Viskositas_' + (s.nama || 'siswa').replace(/\s+/g, '_') + '.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('File jawaban diunduh.');
+});
+
+document.getElementById('btnCopy').addEventListener('click', async () => {
+  const s = buildSummaryText();
+  try {
+    await navigator.clipboard.writeText(s.text);
+    showToast('Semua jawaban disalin ke clipboard.');
+  } catch (e) {
+    showToast('Gagal menyalin otomatis — salin manual dari file unduhan.');
+  }
+});
+
+document.getElementById('btnGoogleForm').addEventListener('click', async () => {
+  if (!GOOGLE_APPS_SCRIPT_URL) {
+    showToast('URL Google Apps Script belum disetel guru. Lihat panduan setup di bawah.');
+    return;
+  }
+
+  const s = buildSummaryText();
+  if (!s.nama || s.nama === '(belum diisi)') {
+    showToast('Nama siswa wajib diisi sebelum mengirim.');
+    return;
+  }
+
+  const payload = {
+    timestamp: new Date().toISOString(),
+    nama: s.nama,
+    kelas: s.kelas,
+    kelompok: s.kelompok,
+    dataTabel: s.dataTabel,
+    rataRataEta: s.rataRata,
+    contohHitung: s.contoh,
+    diskusi1: s.d[0],
+    diskusi2: s.d[1],
+    diskusi3: s.d[2],
+    diskusi4: s.d[3],
+    diskusi5: s.d[4],
+    kesimpulan: s.kesim
+  };
+
+  const btn = document.getElementById('btnGoogleForm');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Mengirim...';
+
+  try {
+    await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    showToast('Jawaban berhasil dikirim. Periksa Google Sheets jika diperlukan.');
+  } catch (e) {
+    showToast('Pengiriman gagal. Periksa URL Google Apps Script dan koneksi internet.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+});
+
+/* ============================================================ Toast */
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+renderTable();
+</script>
+
+</body>
+</html>
