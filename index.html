@@ -255,11 +255,11 @@
         <ol>
           <li>Buat satu Google Spreadsheet untuk menampung jawaban siswa.</li>
           <li>Buka <strong>Ekstensi &rarr; Apps Script</strong> pada Spreadsheet tersebut.</li>
-          <li>Salin kode Apps Script yang disediakan bersama file LKPD ini, lalu simpan.</li>
+          <li>Gunakan kode Apps Script penerima data yang sesuai dengan field JSON dari LKPD ini, lalu simpan.</li>
           <li>Pilih <strong>Deploy &rarr; New deployment &rarr; Web app</strong>.</li>
           <li>Atur <strong>Execute as: Me</strong> dan akses <strong>Anyone</strong>, lalu lakukan Deploy.</li>
           <li>Salin URL Web App yang berakhiran <code>/exec</code>.</li>
-          <li>Tempel URL tersebut pada <code>GOOGLE_APPS_SCRIPT_URL</code> di file HTML ini.</li>
+          <li>URL Web App sudah dipasang pada <code>GOOGLE_APPS_SCRIPT_URL</code> di file HTML ini.</li>
           <li>Unggah ulang file HTML ke GitHub Pages. Setelah itu tombol <strong>Kirim Jawaban ke Google Sheets</strong> akan mengirim seluruh jawaban ke Spreadsheet.</li>
         </ol>
         <p style="margin-bottom:0;">Jika URL Apps Script belum diisi, tombol kirim akan memberi peringatan. Tombol Unduh dan Salin tetap dapat digunakan.</p>
@@ -528,11 +528,12 @@ document.getElementById('btnCopy').addEventListener('click', async () => {
 
 document.getElementById('btnGoogleForm').addEventListener('click', async () => {
   if (!GOOGLE_APPS_SCRIPT_URL) {
-    showToast('URL Google Apps Script belum disetel guru. Lihat panduan setup di bawah.');
+    showToast('URL Google Apps Script belum disetel.');
     return;
   }
 
   const s = buildSummaryText();
+
   if (!s.nama || s.nama === '(belum diisi)') {
     showToast('Nama siswa wajib diisi sebelum mengirim.');
     return;
@@ -560,20 +561,27 @@ document.getElementById('btnGoogleForm').addEventListener('click', async () => {
   btn.textContent = 'Mengirim...';
 
   try {
+    // Apps Script menerima JSON melalui POST.
+    // no-cors dipakai agar HTML yang di-host di GitHub Pages/Google Sites
+    // tetap dapat mengirim data ke Web App Apps Script.
     await fetch(GOOGLE_APPS_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
       body: JSON.stringify(payload)
     });
-    showToast('Jawaban berhasil dikirim. Periksa Google Sheets jika diperlukan.');
+
+    showToast('Data sudah dikirim ke Google Sheets. Silakan periksa spreadsheet.');
   } catch (e) {
-    showToast('Pengiriman gagal. Periksa URL Google Apps Script dan koneksi internet.');
+    console.error('Pengiriman Google Sheets gagal:', e);
+    showToast('Pengiriman gagal. Periksa koneksi dan deployment Apps Script.');
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
   }
-});
+});;
 
 /* ============================================================ Toast */
 let toastTimer = null;
